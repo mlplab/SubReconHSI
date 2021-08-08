@@ -9,7 +9,7 @@ from colour.colorimetry import transformations
 import torch
 import torchvision
 from torchinfo import summary
-from .layers import ReLU, Leaky, Swish, Mish, FReLU
+from .layers import ReLU, Leaky, Swish, Mish
 
 
 def normalize(data):
@@ -18,15 +18,15 @@ def normalize(data):
 
 class HSCNN(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, *args, feature: int=64, 
-                 block_num: int=9, **kwargs) -> None: 
+    def __init__(self, input_ch: int, output_ch: int, *args, feature: int=64,
+                 block_num: int=9, **kwargs) -> None:
         super(HSCNN, self).__init__()
         self.output_ch = output_ch
         activation = kwargs.get('activation', 'leaky')
         mode = kwargs.get('mode', 'add')
         self.residual = kwargs.get('res', True)
         self.feature_num = feature
-        activations = {'relu': ReLU, 'leaky': Leaky, 'swish': Swish, 'mish': Mish, 'frelu': FReLU}
+        activations = {'relu': ReLU, 'leaky': Leaky, 'swish': Swish, 'mish': Mish}
         self.start_conv = torch.nn.Conv2d(input_ch, output_ch, 3, 1, 1)
         self.start_activation = activations[activation]()
         self.patch_extraction = torch.nn.Conv2d(output_ch, feature, 3, 1, 1)

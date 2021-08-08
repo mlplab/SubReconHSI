@@ -115,7 +115,7 @@ class DW_PT_Conv(Base_Module):
 
 class HSI_prior_block(Base_Module):
 
-    def __init__(self, input_ch: int, output_ch: int, feature: int=64, 
+    def __init__(self, input_ch: int, output_ch: int, feature: int=64,
                  activation: str='relu') -> None:
         super(HSI_prior_block, self).__init__()
         self.activation = self.activations[activation]()
@@ -135,7 +135,7 @@ class HSI_prior_block(Base_Module):
 
 class My_HSI_network(Base_Module):
 
-    def __init__(self, input_ch: int, output_ch: int, 
+    def __init__(self, input_ch: int, output_ch: int,
                  feature: int=64, activation: str='relu'):
         super(My_HSI_network, self).__init__()
         self.activation = self.activation[activation]()
@@ -155,7 +155,7 @@ class My_HSI_network(Base_Module):
 
 class Conv2d(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, *args, 
+    def __init__(self, input_ch: int, output_ch: int, *args,
                  kernel_size: int=3, stride: int=1, **kwargs) -> None:
 
         super().__init__()
@@ -169,7 +169,7 @@ class Conv2d(torch.nn.Module):
 
 class Depthwise(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, *args, 
+    def __init__(self, input_ch: int, output_ch: int, *args,
                  kernel_size: int=3, stride: int=1, **kwargs) -> None:
 
         super().__init__()
@@ -212,7 +212,7 @@ class DeformableConv2d(torch.nn.Module):
 
 
 # ########################## Mix and Ghost Conv 2d  ##########################
-def split_layer(output_ch: int, chunks: int) -> list[int]:
+def split_layer(output_ch: int, chunks: int):
     split = [np.int(np.ceil(output_ch / chunks)) for _ in range(chunks)]
     split[chunks - 1] += output_ch - sum(split)
     return split
@@ -220,8 +220,8 @@ def split_layer(output_ch: int, chunks: int) -> list[int]:
 
 class Ghost_Mix(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, *args, 
-                 kernel_size: int=3, stride: int=1, dw_kernel: int=3, 
+    def __init__(self, input_ch: int, output_ch: int, *args,
+                 kernel_size: int=3, stride: int=1, dw_kernel: int=3,
                  dw_stride: int=1, ratio: int=2, **kwargs) -> None:
         super(Ghost_Mix, self).__init__()
         self.ratio = ratio
@@ -274,8 +274,8 @@ class Ghost_Mix(torch.nn.Module):
 
 class Ghost_normal(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, *args, 
-                 kernel_size: int=3, stride: int=1, dw_kernel: int=3, 
+    def __init__(self, input_ch: int, output_ch: int, *args,
+                 kernel_size: int=3, stride: int=1, dw_kernel: int=3,
                  dw_stride: int=1, ratio: int=2, **kwargs):
         super().__init__()
         self.ratio = ratio
@@ -298,7 +298,7 @@ class Ghost_normal(torch.nn.Module):
 
 class GroupConv(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, chunks: int, 
+    def __init__(self, input_ch: int, output_ch: int, chunks: int,
                  kernel_size: int, *args, stride: int=1, **kwargs):
         super(GroupConv, self).__init__()
         self.chunks = chunks
@@ -344,7 +344,7 @@ class Mix_Conv(torch.nn.Module):
 
 class Group_SE(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, chunks: int, 
+    def __init__(self, input_ch: int, output_ch: int, chunks: int,
                  kernel_size: int, **kwargs):
         super(Group_SE, self).__init__()
         ratio = kwargs.get('ratio', 2)
@@ -388,7 +388,7 @@ class Mix_Conv(torch.nn.Module):
 
 class Mix_SS_Layer(torch.nn.Module):
 
-    def __init__(self, input_ch: int, output_ch: int, chunks: int, *args, 
+    def __init__(self, input_ch: int, output_ch: int, chunks: int, *args,
                  feature_num: int=64, group_num: int=1, **kwargs) -> None:
         super(Mix_SS_Layer, self).__init__()
         activations = {'relu': ReLU, 'leaky': Leaky, 'swish': Swish, 'mish': Mish}

@@ -150,7 +150,7 @@ class Evaluater(object):
 class ReconstEvaluater(Evaluater):
 
     def metrics(self, model: torch.nn.Module, dataset: torch.utils.data.Dataset,
-                evaluate_fn: list[torch.nn.Module, torch.nn.Module, torch.nn.Module],
+                evaluate_fn,
                 header=None, colab_mode: bool=False) -> None:
         model.eval()
         output_evaluate = []
