@@ -214,7 +214,7 @@ class TPUTrainer(Trainer):
                     init_epoch: int=0, **kwargs) -> None:
 
         flush = kwargs.get('flush', 25)
-        train_dataloader_num = len(train_dataloadera)
+        train_dataloader_num = len(train_dataloader)
         val_dataloader_num = len(eval_dataloader)
         if self.colab_mode is False:
             _, columns = os.popen('stty size', 'r').read().split()
@@ -235,8 +235,7 @@ class TPUTrainer(Trainer):
             show_val_eval = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             train_start_time = time.time()
-            train_dataloader = pl.ParallelLoader(train_dataloader, [self.device])
-            # with tqdm(train_dataloader.per_device_loader(self.device), desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            train_dataloader = pl.ParallelLoader(train_dataloader, [self.device]).per_device_loader(self.device)
             flush_time = 0
             for i, (inputs, labels) in enumerate(train_dataloader):
                 inputs = self._trans_data(inputs)
@@ -265,7 +264,7 @@ class TPUTrainer(Trainer):
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             val_start_time = time.time()
-            val_dataloader = pl.ParallelLoader(eval_dataloader, [self.device])
+            val_dataloader = pl.ParallelLoader(val_dataloader, [self.device]).per_device_loader(self.device)
             flush_time = 0
             for i, (inputs, labels) in enumerate(val_dataloader):
                 inputs = self._trans_data(inputs)
