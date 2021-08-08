@@ -2,12 +2,9 @@
 
 
 import os
-import pickle
 import numpy as np
 from tqdm import tqdm
-from tqdm import tqdm_notebook
 from datetime import datetime
-from collections import OrderedDict
 import torch
 import torch_xla
 import torch_xla.core.xla_model as xm
@@ -53,8 +50,6 @@ class Trainer(object):
             columns = 200
         train_output = []
         val_output = []
-        train_output_loss = []
-        val_output_loss = []
 
         for epoch in range(init_epoch, epochs):
             dt_now = datetime.now()
@@ -145,12 +140,149 @@ class Trainer(object):
 
 class TPUTrainer(Trainer):
 
+    def single_train(self, epochs: int,
+                     train_dataloader: torch.utils.data.DataLoader,
+                     val_dataloader: torch.utils.data.DataLoader,
+                     init_epoch: int=0) -> (np.ndarray, np.ndarray):
+
+        if self.colab_mode is False:
+            _, columns = os.popen('stty size', 'r').read().split()
+            columns = int(columns)
+        else:
+            columns = 200
+        train_output = []
+        val_output = []
+
+        for epoch in range(init_epoch, epochs):
+            dt_now = datetime.now()
+            xm.master_print(dt_now)
+            self.model.train()
+            mode = 'Train'
+            train_loss = []
+            val_loss = []
+            show_train_eval = []
+            show_val_eval = []
+            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
+            with tqdm(train_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+                for i, (inputs, labels) in enumerate(pbar):
+                    inputs = self._trans_data(inputs)
+                    labels = self._trans_data(labels)
+                    loss, output = self._step(inputs, labels)
+                    train_loss.append(loss.item())
+                    show_loss = np.mean(train_loss)
+                    show_train_eval.append(self._evaluate(output, labels))
+                    show_mean = np.mean(show_train_eval, axis=0)
+                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                    torch.cuda.empty_cache()
+            show_mean = np.insert(show_mean, 0, show_loss)
+            train_output.append(show_mean)
+
+            mode = 'Val'
+            self.model.eval()
+            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
+            with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+                for i, (inputs, labels) in enumerate(pbar):
+                    inputs = self._trans_data(inputs)
+                    labels = self._trans_data(labels)
+                    with torch.no_grad():
+                        loss, output = self._singel_step(inputs, labels, train=False)
+                    val_loss.append(loss.item())
+                    show_loss = np.mean(val_loss)
+                    show_val_eval.append(self._evaluate(output, labels))
+                    show_mean = np.mean(show_val_eval, axis=0)
+                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                    torch.cuda.empty_cache()
+            show_mean = np.insert(show_mean, 0, show_loss)
+            val_output.append(show_mean)
+            if self.callbacks:
+                for callback in self.callbacks:
+                    callback.callback(self.model, epoch, loss=train_loss,
+                                      val_loss=val_loss, save=True,
+                                      device=self.device, optim=self.optimizer)
+            if self.scheduler is not None:
+                self.scheduler.step()
+
+        train_output = np.array(train_output)
+        val_output = np.array(val_output)
+        return train_output, val_output
+
+    def multi_train(self, epochs: int, batch_size: int, train_dataloader,
+                    eval_dataloader, *args, nprocs: int=8,
+                    init_epoch: int=0) -> None:
+
+        if self.colab_mode is False:
+            _, columns = os.popen('stty size', 'r').read().split()
+            columns = int(columns)
+        else:
+            columns = 200
+        train_output = []
+        val_output = []
+
+        for epoch in range(init_epoch, epochs):
+            dt_now = datetime.now()
+            xm.master_print(dt_now)
+            self.model.train()
+            mode = 'Train'
+            train_loss = []
+            val_loss = []
+            show_train_eval = []
+            show_val_eval = []
+            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
+            with tqdm(train_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+                for i, (inputs, labels) in enumerate(pbar):
+                    inputs = self._trans_data(inputs)
+                    labels = self._trans_data(labels)
+                    loss, output = self._step(inputs, labels)
+                    train_loss.append(loss.item())
+                    show_loss = np.mean(train_loss)
+                    show_train_eval.append(self._evaluate(output, labels))
+                    show_mean = np.mean(show_train_eval, axis=0)
+                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                    torch.cuda.empty_cache()
+            show_mean = np.insert(show_mean, 0, show_loss)
+            train_output.append(show_mean)
+
+            mode = 'Val'
+            self.model.eval()
+            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
+            with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+                for i, (inputs, labels) in enumerate(pbar):
+                    inputs = self._trans_data(inputs)
+                    labels = self._trans_data(labels)
+                    with torch.no_grad():
+                        loss, output = self._singel_step(inputs, labels, train=False)
+                    val_loss.append(loss.item())
+                    show_loss = np.mean(val_loss)
+                    show_val_eval.append(self._evaluate(output, labels))
+                    show_mean = np.mean(show_val_eval, axis=0)
+                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                    torch.cuda.empty_cache()
+            show_mean = np.insert(show_mean, 0, show_loss)
+            val_output.append(show_mean)
+            if self.callbacks:
+                for callback in self.callbacks:
+                    callback.callback(self.model, epoch, loss=train_loss,
+                                      val_loss=val_loss, save=True,
+                                      device=self.device, optim=self.optimizer)
+            if self.scheduler is not None:
+                self.scheduler.step()
+            print('-' * int(columns))
+
+        train_output = np.array(train_output)
+        val_output = np.array(val_output)
+        return train_output, val_output
+
     def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         output = self.model(inputs)
         loss = self.criterion(output, labels)
         if train is True:
             loss.backward()
-            xm.optimizer_step(optimizer, barrier=True)
+            xm.optimizer_step(self.optimizer, barrier=True)
             self.optimizer.zero_grad()
         return loss, output
+
