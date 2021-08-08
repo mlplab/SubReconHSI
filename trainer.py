@@ -255,7 +255,7 @@ class TPUTrainer(Trainer):
                     inputs = self._trans_data(inputs)
                     labels = self._trans_data(labels)
                     with torch.no_grad():
-                        loss, output = self._singel_step(inputs, labels, train=False)
+                        loss, output = self._step(inputs, labels, train=False)
                     val_loss.append(loss.item())
                     show_loss = np.mean(val_loss)
                     show_val_eval.append(self._evaluate(output, labels))
