@@ -34,9 +34,9 @@ class Trainer(object):
         self.callbacks = callbacks
         self.device = device
         self.use_amp = kwargs.get('use_amp', False)
-        self.psnr = kwargs.get('psnr', None_Evaluate)  # SNRMetrics().eval())
-        self.sam = kwargs.get('sam', None_Evaluate)  # SAMMetrics().eval())
-        self.ssim = kwargs.get('ssim', None_Evaluate)  # SSIM().eval()
+        self.psnr = kwargs.get('psnr', None_Evaluate())  # SNRMetrics().eval())
+        self.sam = kwargs.get('sam', None_Evaluate())  # SAMMetrics().eval())
+        self.ssim = kwargs.get('ssim', None_Evaluate())  # SSIM().eval()
         self.colab_mode = kwargs.get('colab_mode', False)
         self.scaler = torch.cuda.amp.GradScaler()
 
