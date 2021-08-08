@@ -230,7 +230,8 @@ class TPUTrainer(Trainer):
             show_train_eval = []
             show_val_eval = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(train_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            train_dataloader = pl.ParallelLoader(train_dataloader, [self.device])
+            with tqdm(train_dataloader.per_device_loader(self.device), desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
                 for i, (inputs, labels) in enumerate(pbar):
                     inputs = self._trans_data(inputs)
                     labels = self._trans_data(labels)
@@ -248,7 +249,8 @@ class TPUTrainer(Trainer):
             mode = 'Val'
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            val_dataloader = pl.ParallelLoader(val_dataloader, [self.device])
+            with tqdm(val_dataloader.per_device_loader(self.device), desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
                 for i, (inputs, labels) in enumerate(pbar):
                     inputs = self._trans_data(inputs)
                     labels = self._trans_data(labels)
