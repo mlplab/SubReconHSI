@@ -213,7 +213,6 @@ class TPUTrainer(Trainer):
                     eval_dataloader, *args, nprocs: int=8,
                     init_epoch: int=0, **kwargs) -> None:
 
-        flush = kwargs.get('flush', 25)
         train_dataloader_num = len(train_dataloader)
         val_dataloader_num = len(eval_dataloader)
         if self.colab_mode is False:
@@ -247,16 +246,15 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_train_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % flush == 0:
+                if i % batch_size == 0:
                     now_time = time.time() - train_start_time
                     now_h, now_m, now_s = now_time // 3600, now_time // 60, now_time % 60
-                    bar = '#' * flush_time + '.' * (flush - flush_time)
+                    bar = '#' * i + '.' * (train_dataloader_num // nprocs - i)
                     progress = '| '.join([desc_str, f'Time: {now_h}:{now_m}:{now_s}',
                                           bar,
                                           f'{i:05d} / {train_dataloader_num // nprocs:05d}',
-                                          f'Loss: {show_mean:.7f}| Evaluate: {evaluate}'])
+                                          f'Loss: {show_mean:.7f}'])  # | Evaluate: {evaluate}'])
                     xm.master_print(progress)
-                    flush_time += 1
             show_mean = np.insert(show_mean, 0, show_loss)
             train_output.append(show_mean)
 
@@ -277,16 +275,15 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_val_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % flush == 0:
+                if i % batch_size == 0:
                     now_time = time.time() - val_start_time
-                    now_h, now_m, now_s = now_time // 3600, now_m // 60, now_time % 60
-                    bar = '#' * flush_time + '.' * (flush - flush_time)
-                    progress = '| '.join([desc_str, f'Time: {now_h}:{now_m}:{now_s}',
-                                            bar,
-                                            f'{i:05d} / {val_dataloader_num // nprocs:05d}',
-                                            f'Loss: {show_mean:.7f}| Evaluate: {evaluate}'])
+                    now_h, now_m, now_s = now_time // 3600, now_time // 60, now_time % 60
+                    bar = '#' * i + '.' * (val_dataloader_num // nprocs - i)
+                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:02f}',
+                                          bar,
+                                          f'{i:05d} / {val_dataloader_num // nprocs:05d}',
+                                          f'Loss: {show_mean:.7f}'])  # | Evaluate: {evaluate}'])
                     xm.master_print(progress)
-                    flush_time += 1
             show_mean = np.insert(show_mean, 0, show_loss)
             val_output.append(show_mean)
             if self.callbacks:
