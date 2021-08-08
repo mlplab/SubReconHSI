@@ -250,7 +250,7 @@ class TPUTrainer(Trainer):
                     now_time = time.time() - train_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
                     bar = '#' * i + '.' * (train_dataloader_num - i)
-                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
+                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
                                           bar,
                                           f'{i:05d} / {train_dataloader_num:05d}',
                                           f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
@@ -263,7 +263,6 @@ class TPUTrainer(Trainer):
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             val_start_time = time.time()
             val_dataloader = pl.ParallelLoader(eval_dataloader, [self.device]).per_device_loader(self.device)
-            flush_time = 0
             for i, (inputs, labels) in enumerate(val_dataloader):
                 inputs = self._trans_data(inputs)
                 labels = self._trans_data(labels)
@@ -280,7 +279,7 @@ class TPUTrainer(Trainer):
                     now_time = time.time() - val_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
                     bar = '#' * i + '.' * (val_dataloader_num - i)
-                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
+                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
                                             bar,
                                             f'{i:05d} / {val_dataloader_num:05d}',
                                             f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
