@@ -234,9 +234,9 @@ class TPUTrainer(Trainer):
             show_val_eval = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             train_start_time = time.time()
-            train_dataloader = pl.ParallelLoader(train_dataloader, [self.device]).per_device_loader(self.device)
+            para_dataloader = pl.ParallelLoader(train_dataloader, [self.device]).per_device_loader(self.device)
             flush_time = 0
-            for i, (inputs, labels) in enumerate(train_dataloader):
+            for i, (inputs, labels) in enumerate(para_dataloader):
                 inputs = self._trans_data(inputs)
                 labels = self._trans_data(labels)
                 loss, output = self._step(inputs, labels)
@@ -246,13 +246,13 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_train_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % batch_size == 0:
+                if i % (batch_size // nprocs) == 0:
                     now_time = time.time() - train_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * i + '.' * (train_dataloader_num // nprocs - i)
+                    bar = '#' * i + '.' * (train_dataloader_num - i)
                     progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
                                           bar,
-                                          f'{i:05d} / {train_dataloader_num // nprocs:05d}',
+                                          f'{i:05d} / {train_dataloader_num:05d}',
                                           f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
                     xm.master_print(progress)
             show_mean = np.insert(show_mean, 0, show_loss)
@@ -275,15 +275,15 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_val_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % batch_size == 0:
+                if i % (batch_size // nprocs) == 0:
 
                     now_time = time.time() - val_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * i + '.' * (val_dataloader_num // nprocs - i)
+                    bar = '#' * i + '.' * (val_dataloader_num - i)
                     progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
-                                          bar,
-                                          f'{i:05d} / {val_dataloader_num // nprocs:05d}',
-                                          f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
+                                            bar,
+                                            f'{i:05d} / {val_dataloader_num:05d}',
+                                            f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
                     xm.master_print(progress)
             show_mean = np.insert(show_mean, 0, show_loss)
             val_output.append(show_mean)
