@@ -22,8 +22,8 @@ torch.set_printoptions(precision=8)
 
 class Trainer(object):
 
-    def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module, 
-                 optimizer: torch.optim.Optimizer, *args, scheduler: =None, 
+    def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module,
+                 optimizer: torch.optim.Optimizer, *args, scheduler=None,
                  callbacks: list[object]=None, device: str='cpu', **kwargs):
 
         self.model = model
@@ -39,7 +39,7 @@ class Trainer(object):
         self.colab_mode = kwargs.get('colab_mode', False)
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def train(self, epochs: int, train_dataloader: torch.utils.data.DataLoader, 
+    def train(self, epochs: int, train_dataloader: torch.utils.data.DataLoader,
               val_dataloader: torch.utils.data.DataLoader, init_epoch: int=0) -> (np.ndarray, np.ndarray):
 
         if self.colab_mode is False:
@@ -98,7 +98,7 @@ class Trainer(object):
             if self.callbacks:
                 for callback in self.callbacks:
                     callback.callback(self.model, epoch, loss=train_loss,
-                                      val_loss=val_loss, save=True, 
+                                      val_loss=val_loss, save=True,
                                       device=self.device, optim=self.optimizer)
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -111,7 +111,7 @@ class Trainer(object):
     def _trans_data(self, data: torch.Tensor) -> torch.Tensor:
         return data.to(self.device)
 
-    def _step(self, inputs: torch.Tensor, labels: torch.Tensor, 
+    def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         with torch.cuda.amp.autocast(self.use_amp):
             output = self.model(inputs)
@@ -134,6 +134,6 @@ class Trainer(object):
         output = output.float().to(self.device)
         output = torch.clamp(output, 0., 1.)
         labels = torch.clamp(label, 0., 1.)
-        return [self.psnr(labels, output).item(), 
-                self.ssim(labels, output).item(), 
+        return [self.psnr(labels, output).item(),
+                self.ssim(labels, output).item(),
                 self.sam(labels, output).item()]

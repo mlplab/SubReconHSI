@@ -66,8 +66,8 @@ class SAMMetrics(torch.nn.Module):
 
 class Evaluater(object):
 
-    def __init__(self, data_name: str, save_img_path: str='output_img', 
-                 save_mat_path: str='output_mat', save_csv_path: str='output_csv', 
+    def __init__(self, data_name: str, save_img_path: str='output_img',
+                 save_mat_path: str='output_mat', save_csv_path: str='output_csv',
                  **kwargs) -> None:
         self.data_name = data_name
         self.save_alls_path = save_img_path
@@ -77,7 +77,7 @@ class Evaluater(object):
         os.makedirs(self.save_alls_path, exist_ok=True)
         os.makedirs(save_mat_path, exist_ok=True)
 
-    def _plot_img(self, ax: plt.Axes, img: np.ndarray, title: str='None', 
+    def _plot_img(self, ax: plt.Axes, img: np.ndarray, title: str='None',
                   colorbar: bool=False) -> None:
         if colorbar is not False:
             divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
@@ -149,9 +149,9 @@ class Evaluater(object):
 
 class ReconstEvaluater(Evaluater):
 
-    def metrics(self, model: torch.nn.Module, dataset: torch.utils.data.Dataset, 
-                evaluate_fn: list[torch.nn.Module, torch.nn.Module, torch.nn.Module], 
-                header: object=None, colab_mode: bool=False) -> None:
+    def metrics(self, model: torch.nn.Module, dataset: torch.utils.data.Dataset,
+                evaluate_fn: list[torch.nn.Module, torch.nn.Module, torch.nn.Module],
+                header=None, colab_mode: bool=False) -> None:
         model.eval()
         output_evaluate = []
         if colab_mode is False:
