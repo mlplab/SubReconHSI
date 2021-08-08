@@ -10,7 +10,7 @@ import torch_xla
 import torch_xla.core.xla_model as xm
 import torch_xla.distributed.parallel_loader as pl
 import torch_xla.distributed.xla_multiprocessing as xmp
-from evaluate import PSNRMetrics, SAMMetrics
+from evaluate import PSNRMetrics, SAMMetrics, None_Evaluate
 from pytorch_ssim import SSIM
 from utils import normalize
 
@@ -34,9 +34,9 @@ class Trainer(object):
         self.callbacks = callbacks
         self.device = device
         self.use_amp = kwargs.get('use_amp', False)
-        self.psnr = PSNRMetrics().eval()
-        self.sam = SAMMetrics().eval()
-        self.ssim = SSIM().eval()
+        self.psnr = kwargs.get('psnr', None_Evaluate)  # SNRMetrics().eval())
+        self.sam = kwargs.get('sam', None_Evaluate)  # SAMMetrics().eval())
+        self.ssim = kwargs.get('ssim', None_Evaluate)  # SSIM().eval()
         self.colab_mode = kwargs.get('colab_mode', False)
         self.scaler = torch.cuda.amp.GradScaler()
 
