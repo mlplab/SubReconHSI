@@ -24,7 +24,11 @@ torch.set_printoptions(precision=8)
 class Trainer(object):
 
     def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module,
+<<<<<<< HEAD
                  optimizer: torch.optim.Optimizer, *args, scheduler=None,
+=======
+                 optimizer: torch.optim.Optimizer, *args, scheduler: =None,
+>>>>>>> 93c3ada435ebf7bd02ca0f27a16857f158064aac
                  callbacks: list[object]=None, device: str='cpu', **kwargs):
 
         self.model = model
@@ -282,7 +286,13 @@ class TPUTrainer(Trainer):
         loss = self.criterion(output, labels)
         if train is True:
             loss.backward()
+<<<<<<< HEAD
             xm.optimizer_step(self.optimizer, barrier=True)
             self.optimizer.zero_grad()
         return loss, output
 
+=======
+            xm.optimizer_step(optimizer, barrier=True)
+            self.optimizer.zero_grad()
+        return loss, output
+>>>>>>> 93c3ada435ebf7bd02ca0f27a16857f158064aac
