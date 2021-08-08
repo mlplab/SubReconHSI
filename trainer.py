@@ -25,7 +25,7 @@ class Trainer(object):
 
     def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module,
                  optimizer: torch.optim.Optimizer, *args, scheduler=None,
-                 callbacks: list[object]=None, device: str='cpu', **kwargs):
+                 callbacks=None, device: str='cpu', **kwargs):
 
         self.model = model
         self.criterion = criterion
