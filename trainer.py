@@ -248,9 +248,9 @@ class TPUTrainer(Trainer):
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
                 if i % batch_size == 0:
                     now_time = time.time() - train_start_time
-                    now_h, now_m, now_s = now_time // 3600, now_time // 60, now_time % 60
+                    now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
                     bar = '#' * i + '.' * (train_dataloader_num // nprocs - i)
-                    progress = '| '.join([desc_str, f'Time: {now_h}:{now_m}:{now_s}',
+                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
                                           bar,
                                           f'{i:05d} / {train_dataloader_num // nprocs:05d}',
                                           f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
@@ -262,7 +262,7 @@ class TPUTrainer(Trainer):
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             val_start_time = time.time()
-            val_dataloader = pl.ParallelLoader(val_dataloader, [self.device]).per_device_loader(self.device)
+            val_dataloader = pl.ParallelLoader(eval_dataloader, [self.device]).per_device_loader(self.device)
             flush_time = 0
             for i, (inputs, labels) in enumerate(val_dataloader):
                 inputs = self._trans_data(inputs)
@@ -278,9 +278,9 @@ class TPUTrainer(Trainer):
                 if i % batch_size == 0:
 
                     now_time = time.time() - val_start_time
-                    now_h, now_m, now_s = now_time // 3600, now_time // 60, now_time % 60
+                    now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
                     bar = '#' * i + '.' * (val_dataloader_num // nprocs - i)
-                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:02f}',
+                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s}',
                                           bar,
                                           f'{i:05d} / {val_dataloader_num // nprocs:05d}',
                                           f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
@@ -294,7 +294,7 @@ class TPUTrainer(Trainer):
                                       device=self.device, optim=self.optimizer)
             if self.scheduler is not None:
                 self.scheduler.step()
-            print('-' * int(columns))
+            xm.master_print('-' * int(columns))
 
         train_output = np.array(train_output)
         val_output = np.array(val_output)
