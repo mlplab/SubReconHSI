@@ -9,6 +9,10 @@ from tqdm import tqdm_notebook
 from datetime import datetime
 from collections import OrderedDict
 import torch
+import torch_xla
+import torch_xla.core.xla_model as xm
+import torch_xla.distributed.parallel_loader as pl
+import torch_xla.distributed.xla_multiprocessing as xmp
 from evaluate import PSNRMetrics, SAMMetrics
 from pytorch_ssim import SSIM
 from utils import normalize
@@ -137,3 +141,16 @@ class Trainer(object):
         return [self.psnr(labels, output).item(),
                 self.ssim(labels, output).item(),
                 self.sam(labels, output).item()]
+
+
+class TPUTrainer(Trainer):
+
+    def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
+              train: bool=True) -> (torch.Tensor, torch.Tensor):
+        output = self.model(inputs)
+        loss = self.criterion(output, labels)
+        if train is True:
+            loss.backward()
+            xm.optimizer_step(optimizer, barrier=True)
+            self.optimizer.zero_grad()
+        return loss, output
