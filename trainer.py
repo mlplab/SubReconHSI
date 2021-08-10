@@ -24,7 +24,7 @@ class Trainer(object):
 
     def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module,
                  optimizer: torch.optim.Optimizer, *args, scheduler=None,
-                 callbacks: list[object]=None, device: str='cpu', **kwargs):
+                 callbacks=None, device: str='cpu', **kwargs):
 
         self.model = model
         self.criterion = criterion
@@ -130,7 +130,7 @@ class Trainer(object):
         pbar.set_postfix(kwargs)
         return self
 
-    def _evaluate(self, output, label) -> (float, float, float):
+    def _evaluate(self, output: torch.Tensor, label: torch.Tensor) -> (float, float, float):
         output = output.float().to(self.device)
         output = torch.clamp(output, 0., 1.)
         labels = torch.clamp(label, 0., 1.)
