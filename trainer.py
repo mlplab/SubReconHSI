@@ -215,9 +215,9 @@ class TPUTrainer(Trainer):
 
         flush_time = kwargs.get('flush_time', 10)
         train_dataloader_num = len(train_dataloader)
-        train_flush_time train_dataloader_num // flush_time
+        train_flush_time = train_dataloader_num // flush_time
         val_dataloader_num = len(eval_dataloader)
-        val_flush_time val_dataloader_num // flush_time
+        val_flush_time = val_dataloader_num // flush_time
         if self.colab_mode is False:
             _, columns = os.popen('stty size', 'r').read().split()
             columns = int(columns)
