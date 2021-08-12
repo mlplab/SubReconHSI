@@ -210,12 +210,14 @@ class TPUTrainer(Trainer):
         return train_output, val_output
 
     def multi_train(self, epochs: int, batch_size: int, train_dataloader,
-                    eval_dataloader, *args, nprocs: int=8,
+                    eval_dataloader, *args,
                     init_epoch: int=0, **kwargs) -> None:
 
         flush_time = kwargs.get('flush_time', 10)
         train_dataloader_num = len(train_dataloader)
+        train_flush_time train_dataloader_num // flush_time
         val_dataloader_num = len(eval_dataloader)
+        val_flush_time val_dataloader_num // flush_time
         if self.colab_mode is False:
             _, columns = os.popen('stty size', 'r').read().split()
             columns = int(columns)
@@ -246,10 +248,10 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_train_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % flush_time == 0:
+                if i % train_flush_time == 0:
                     now_time = time.time() - train_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * (i // flush_time) + '.' * (train_dataloader_num - i) // flush_time
+                    bar = '#' * (i // train_flush_time) + '.' * ((train_dataloader_num - i) // train_flush_time)
                     progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
                                           f'{i:05d} / {train_dataloader_num:05d}',
                                           bar,
@@ -257,7 +259,7 @@ class TPUTrainer(Trainer):
                     xm.master_print(progress)
             show_mean = np.insert(show_mean, 0, show_loss)
             train_output.append(show_mean)
-
+            xm.master_print('=' * 50)
             mode = 'Val'
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
@@ -274,10 +276,10 @@ class TPUTrainer(Trainer):
                 show_mean = np.mean(show_val_eval, axis=0)
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % flush_time == 0:
+                if i % val_flush_time == 0:
                     now_time = time.time() - train_start_time
                     now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * (i // flush_time) + '.' * (val_dataloader_num - i) // flush_time
+                    bar = '#' * (i // val_flush_time) + '.' * ((val_dataloader_num - i) // val_flush_time)
                     progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
                                             f'{i:05d} / {val_dataloader_num:05d}',
                                             bar,
