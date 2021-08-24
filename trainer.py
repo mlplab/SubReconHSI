@@ -157,46 +157,29 @@ class TPUTrainer(Trainer):
         for epoch in range(init_epoch, epochs):
             dt_now = datetime.now()
             xm.master_print(dt_now)
-            self.model.train()
-            mode = 'Train'
             train_loss = []
             val_loss = []
-            show_train_eval = []
-            show_val_eval = []
+            ####################################################################
+            # Train
+            mode = 'Train'
+            self.model.train()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(train_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-                for i, (inputs, labels) in enumerate(pbar):
-                    inputs = self._trans_data(inputs)
-                    labels = self._trans_data(labels)
-                    loss, output = self._step(inputs, labels)
-                    train_loss.append(loss.item())
-                    show_loss = np.mean(train_loss)
-                    show_train_eval.append(self._evaluate(output, labels))
-                    show_mean = np.mean(show_train_eval, axis=0)
-                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torch.cuda.empty_cache()
+            step_loss, step_mean = self._single_all_step(val_dataloader, mode=mode, desc_str=desc_str)
+            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
             show_mean = np.insert(show_mean, 0, show_loss)
             train_output.append(show_mean)
-
+            xm.master_print('-' * int(columns))
+            ####################################################################
+            # Val
             mode = 'Val'
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-                for i, (inputs, labels) in enumerate(pbar):
-                    inputs = self._trans_data(inputs)
-                    labels = self._trans_data(labels)
-                    with torch.no_grad():
-                        loss, output = self._singel_step(inputs, labels, train=False)
-                    val_loss.append(loss.item())
-                    show_loss = np.mean(val_loss)
-                    show_val_eval.append(self._evaluate(output, labels))
-                    show_mean = np.mean(show_val_eval, axis=0)
-                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torch.cuda.empty_cache()
+            step_loss, step_mean = self._single_all_step(val_dataloader, mode=mode, desc_str=desc_str)
+            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
             show_mean = np.insert(show_mean, 0, show_loss)
             val_output.append(show_mean)
+            ####################################################################
+            xm.master_print('=' * int(columns))
             if self.callbacks:
                 for callback in self.callbacks:
                     callback.callback(self.model, epoch, loss=train_loss,
@@ -211,13 +194,19 @@ class TPUTrainer(Trainer):
 
     def multi_train(self, epochs: int, batch_size: int, train_dataloader,
                     eval_dataloader, *args,
-                    init_epoch: int=0, **kwargs) -> None:
+                    init_epoch: int=0, **kwargs) -> (np.ndarray, np.ndarray):
 
         flush_time = kwargs.get('flush_time', 10)
         train_dataloader_num = len(train_dataloader)
-        train_flush_time = train_dataloader_num // flush_time
+        if flush_time > train_dataloader_num:
+            train_flush_time = 2
+        else:
+            train_flush_time = train_dataloader_num // flush_time
         val_dataloader_num = len(eval_dataloader)
-        val_flush_time = val_dataloader_num // flush_time
+        if flush_time > val_dataloader_num:
+            val_flush_time = 2
+        else:
+            val_flush_time = val_dataloader_num // flush_time
         if self.colab_mode is False:
             _, columns = os.popen('stty size', 'r').read().split()
             columns = int(columns)
@@ -229,64 +218,31 @@ class TPUTrainer(Trainer):
         for epoch in range(init_epoch, epochs):
             dt_now = datetime.now()
             xm.master_print(dt_now)
-            self.model.train()
-            mode = 'Train'
             train_loss = []
             val_loss = []
-            show_train_eval = []
-            show_val_eval = []
+            ####################################################################
+            # Train
+            mode = 'Train'
+            self.model.train()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            train_start_time = time.time()
             para_dataloader = pl.ParallelLoader(train_dataloader, [self.device]).per_device_loader(self.device)
-            for i, (inputs, labels) in enumerate(para_dataloader):
-                inputs = self._trans_data(inputs)
-                labels = self._trans_data(labels)
-                loss, output = self._step(inputs, labels)
-                train_loss.append(loss.item())
-                show_loss = np.mean(train_loss)
-                show_train_eval.append(self._evaluate(output, labels))
-                show_mean = np.mean(show_train_eval, axis=0)
-                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % train_flush_time == 0:
-                    now_time = time.time() - train_start_time
-                    now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * (i // train_flush_time) + '.' * ((train_dataloader_num - i) // train_flush_time)
-                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
-                                          f'{i:05d} / {train_dataloader_num:05d}',
-                                          bar,
-                                          f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
-                    xm.master_print(progress)
+            step_loss, step_mean = self._multi_all_step(para_dataloader, train_flush_time, mode=mode, desc_str=desc_str)
+            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
             show_mean = np.insert(show_mean, 0, show_loss)
             train_output.append(show_mean)
-            xm.master_print('=' * 50)
+            xm.master_print('-' * int(columns))
+            ####################################################################
+            # Val
             mode = 'Val'
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            val_start_time = time.time()
-            val_dataloader = pl.ParallelLoader(eval_dataloader, [self.device]).per_device_loader(self.device)
-            for i, (inputs, labels) in enumerate(val_dataloader):
-                inputs = self._trans_data(inputs)
-                labels = self._trans_data(labels)
-                with torch.no_grad():
-                    loss, output = self._step(inputs, labels, train=False)
-                val_loss.append(loss.item())
-                show_loss = np.mean(val_loss)
-                show_val_eval.append(self._evaluate(output, labels))
-                show_mean = np.mean(show_val_eval, axis=0)
-                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                # self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                if i % val_flush_time == 0:
-                    now_time = time.time() - train_start_time
-                    now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
-                    bar = '#' * (i // val_flush_time) + '.' * ((val_dataloader_num - i) // val_flush_time)
-                    progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
-                                            f'{i:05d} / {val_dataloader_num:05d}',
-                                            bar,
-                                            f'Loss: {show_loss:.7f}'])  # | Evaluate: {evaluate}'])
-                    xm.master_print(progress)
+            para_dataloader = pl.ParallelLoader(eval_dataloader, [self.device]).per_device_loader(self.device)
+            step_loss, step_mean = self._multi_all_step(para_dataloader, val_flush_time, mode=mode, desc_str=desc_str)
+            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
             show_mean = np.insert(show_mean, 0, show_loss)
             val_output.append(show_mean)
+            ####################################################################
+            xm.master_print('=' * int(columns))
             if self.callbacks:
                 for callback in self.callbacks:
                     callback.callback(self.model, epoch, loss=train_loss,
@@ -294,7 +250,6 @@ class TPUTrainer(Trainer):
                                       device=self.device, optim=self.optimizer)
             if self.scheduler is not None:
                 self.scheduler.step()
-            xm.master_print('-' * int(columns))
 
         train_output = np.array(train_output)
         val_output = np.array(val_output)
@@ -310,3 +265,54 @@ class TPUTrainer(Trainer):
             self.optimizer.zero_grad()
         return loss, output
 
+    def _single_all_step(self, dataloader, mode: str, desc_str: str) -> (list, list):
+        step_loss = []
+        step_eval = []
+        with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            for i, (inputs, labels) in enumerate(pbar):
+                inputs = self._trans_data(inputs)
+                labels = self._trans_data(labels)
+                if mode.lower() == 'train':
+                    loss, output = self._step(inputs, labels)
+                elif mode.lower() == 'val':
+                    with torch.no_grad():
+                        loss, output = self._step(inputs, labels, train=False)
+                step_loss.append(loss.item())
+                show_loss = np.mean(val_loss)
+                step_eval.append(self._evaluate(output, labels))
+                show_mean = np.mean(show_val_eval, axis=0)
+                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                torch.cuda.empty_cache()
+        return step_loss, step_eval
+
+
+    def _multi_all_step(self, dataloader, flush_time: int, mode: str, desc_str: str) -> (list, list):
+        dataloader_num = len(dataloader)
+        step_loss = []
+        step_eval = []
+        start_time = time.time()
+        for i, (inputs, labels) in enumerate(dataloader):
+            inputs = self._trans_data(inputs)
+            labels = self._trans_data(labels)
+            if mode.lower() == 'train':
+                loss, output = self._step(inputs, labels)
+            elif mode.lower() == 'val':
+                with torch.no_grad():
+                    loss, output = self._step(inputs, labels, train=False)
+            step_loss.append(loss.item())
+            show_loss = np.mean(step_loss)
+            step_eval.append(self._evaluate(output, labels))
+            show_mean = np.mean(step_eval, axis=0)
+            evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+            if i % flush_time == 0:
+                now_time = time.time() - start_time
+                now_h, now_m, now_s = int(now_time // 3600), int(now_time // 60), now_time % 60
+                bar = '#' * (i // flush_time) + '.' * ((dataloader_num - i) // flush_time)
+                progress = '| '.join([desc_str, f'Time: {now_h:02d}:{now_m:02d}:{now_s:06.3f}',
+                                        f'{i:05d} / {dataloader_num:05d}',
+                                        bar,
+                                        f'Loss: {show_loss:.7f}',
+                                        f'Evaluate: {evaluate}'])
+                xm.master_print(progress)
+        return step_loss, step_eval
