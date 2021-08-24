@@ -58,14 +58,13 @@ class Trainer(object):
             train_loss = []
             val_loss = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            show_mean = self._all_step(val_dataloader, mode=mode, dest_str=desc_str, columns=columns)
+            show_mean = self._all_step(val_dataloader, mode=mode, desc_str=desc_str, columns=columns)
             train_output.append(show_mean)
-            print('-' * int(columns))
 
             self.model.eval()
             mode = 'Val'
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            show_mean = self._all_step(val_dataloader, mode=mode, dest_str=desc_str, columns=columns)
+            show_mean = self._all_step(val_dataloader, mode=mode, desc_str=desc_str, columns=columns)
             val_output.append(show_mean)
             if self.callbacks:
                 for callback in self.callbacks:
@@ -110,7 +109,7 @@ class Trainer(object):
                 self.ssim(labels, output).item(),
                 self.sam(labels, output).item()]
 
-    def _all_step(self, dataloader, mode: str, dest_str: str, columns: int) -> np.ndarray:
+    def _all_step(self, dataloader, mode: str, desc_str: str, columns: int) -> np.ndarray:
         step_loss = []
         step_eval = []
         with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
