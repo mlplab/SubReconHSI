@@ -59,41 +59,14 @@ class Trainer(object):
             mode = 'Train'
             train_loss = []
             val_loss = []
-            show_train_eval = []
-            show_val_eval = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(train_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-                for i, (inputs, labels) in enumerate(pbar):
-                    inputs = self._trans_data(inputs)
-                    labels = self._trans_data(labels)
-                    loss, output = self._step(inputs, labels)
-                    train_loss.append(loss.item())
-                    show_loss = np.mean(train_loss)
-                    show_train_eval.append(self._evaluate(output, labels))
-                    show_mean = np.mean(show_train_eval, axis=0)
-                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torch.cuda.empty_cache()
-            show_mean = np.insert(show_mean, 0, show_loss)
+            show_mean = self._all_step(val_dataloader, mode=mode, desc_str=desc_str, columns=columns)
             train_output.append(show_mean)
 
-            mode = 'Val'
             self.model.eval()
+            mode = 'Val'
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-                for i, (inputs, labels) in enumerate(pbar):
-                    inputs = self._trans_data(inputs)
-                    labels = self._trans_data(labels)
-                    with torch.no_grad():
-                        loss, output = self._step(inputs, labels, train=False)
-                    val_loss.append(loss.item())
-                    show_loss = np.mean(val_loss)
-                    show_val_eval.append(self._evaluate(output, labels))
-                    show_mean = np.mean(show_val_eval, axis=0)
-                    evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                    self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torch.cuda.empty_cache()
-            show_mean = np.insert(show_mean, 0, show_loss)
+            show_mean = self._all_step(val_dataloader, mode=mode, desc_str=desc_str, columns=columns)
             val_output.append(show_mean)
             if self.callbacks:
                 for callback in self.callbacks:
@@ -102,7 +75,7 @@ class Trainer(object):
                                       device=self.device, optim=self.optimizer)
             if self.scheduler is not None:
                 self.scheduler.step()
-            print('-' * int(columns))
+            print('=' * int(columns))
 
         train_output = np.array(train_output)
         val_output = np.array(val_output)
@@ -130,7 +103,7 @@ class Trainer(object):
         pbar.set_postfix(kwargs)
         return self
 
-    def _evaluate(self, output, label) -> (float, float, float):
+    def _evaluate(self, output: torch.Tensor, label: torch.Tensor) -> (float, float, float):
         output = output.float().to(self.device)
         output = torch.clamp(output, 0., 1.)
         labels = torch.clamp(label, 0., 1.)
@@ -138,6 +111,7 @@ class Trainer(object):
                 self.ssim(labels, output).item(),
                 self.sam(labels, output).item()]
 
+<<<<<<< HEAD
 
 class TPUTrainer(Trainer):
 
@@ -270,6 +244,13 @@ class TPUTrainer(Trainer):
         step_eval = []
         with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
             for i, (inputs, labels) in enumerate(pbar):
+=======
+    def _all_step(self, dataloader, mode: str, desc_str: str, columns: int) -> np.ndarray:
+        step_loss = []
+        step_eval = []
+        with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            for inputs, labels in pbar:
+>>>>>>> devel
                 inputs = self._trans_data(inputs)
                 labels = self._trans_data(labels)
                 if mode.lower() == 'train':
@@ -278,6 +259,7 @@ class TPUTrainer(Trainer):
                     with torch.no_grad():
                         loss, output = self._step(inputs, labels, train=False)
                 step_loss.append(loss.item())
+<<<<<<< HEAD
                 show_loss = np.mean(val_loss)
                 step_eval.append(self._evaluate(output, labels))
                 show_mean = np.mean(show_val_eval, axis=0)
@@ -316,3 +298,14 @@ class TPUTrainer(Trainer):
                                         f'Evaluate: {evaluate}'])
                 xm.master_print(progress)
         return step_loss, step_eval
+=======
+                show_loss = np.mean(step_loss)
+                step_eval.append(self._evaluate(output, labels))
+                show_mean = np.mean(step_eval, axis=0)
+                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                torch.cuda.empty_cache()
+        show_loss, show_mean = np.mean(step_loss), np.mean(step_eval, axis=0)
+        show_mean = np.insert(show_mean, 0, show_loss)
+        return show_mean
+>>>>>>> devel
