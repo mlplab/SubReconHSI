@@ -111,60 +111,30 @@ class Trainer(object):
                 self.ssim(labels, output).item(),
                 self.sam(labels, output).item()]
 
-<<<<<<< HEAD
+    def _all_step(self, dataloader, mode: str, desc_str: str, columns: int) -> np.ndarray:
+        step_loss = []
+        step_eval = []
+        with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
+            for i, (inputs, labels) in enumerate(pbar):
+                inputs = self._trans_data(inputs)
+                labels = self._trans_data(labels)
+                if mode.lower() == 'train':
+                    loss, output = self._step(inputs, labels)
+                elif mode.lower() == 'val':
+                    with torch.no_grad():
+                        loss, output = self._step(inputs, labels, train=False)
+                step_loss.append(loss.item())
+                show_loss = np.mean(val_loss)
+                step_eval.append(self._evaluate(output, labels))
+                show_mean = np.mean(show_val_eval, axis=0)
+                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
+                self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
+                torch.cuda.empty_cache()
+        show_loss, show_mean = np.mean(step_loss), np.mean(step_eval, axis=0)
+        show_mean = np.insert(show_mean, 0, show_loss)
+        return show_mean
 
 class TPUTrainer(Trainer):
-
-    def single_train(self, epochs: int,
-                     train_dataloader: torch.utils.data.DataLoader,
-                     val_dataloader: torch.utils.data.DataLoader,
-                     init_epoch: int=0) -> (np.ndarray, np.ndarray):
-
-        if self.colab_mode is False:
-            _, columns = os.popen('stty size', 'r').read().split()
-            columns = int(columns)
-        else:
-            columns = 200
-        train_output = []
-        val_output = []
-
-        for epoch in range(init_epoch, epochs):
-            dt_now = datetime.now()
-            xm.master_print(dt_now)
-            train_loss = []
-            val_loss = []
-            ####################################################################
-            # Train
-            mode = 'Train'
-            self.model.train()
-            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            step_loss, step_mean = self._single_all_step(val_dataloader, mode=mode, desc_str=desc_str)
-            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
-            show_mean = np.insert(show_mean, 0, show_loss)
-            train_output.append(show_mean)
-            xm.master_print('-' * int(columns))
-            ####################################################################
-            # Val
-            mode = 'Val'
-            self.model.eval()
-            desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            step_loss, step_mean = self._single_all_step(val_dataloader, mode=mode, desc_str=desc_str)
-            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
-            show_mean = np.insert(show_mean, 0, show_loss)
-            val_output.append(show_mean)
-            ####################################################################
-            xm.master_print('=' * int(columns))
-            if self.callbacks:
-                for callback in self.callbacks:
-                    callback.callback(self.model, epoch, loss=train_loss,
-                                      val_loss=val_loss, save=True,
-                                      device=self.device, optim=self.optimizer)
-            if self.scheduler is not None:
-                self.scheduler.step()
-
-        train_output = np.array(train_output)
-        val_output = np.array(val_output)
-        return train_output, val_output
 
     def multi_train(self, epochs: int, batch_size: int, train_dataloader,
                     eval_dataloader, *args,
@@ -172,15 +142,14 @@ class TPUTrainer(Trainer):
 
         flush_time = kwargs.get('flush_time', 10)
         train_dataloader_num = len(train_dataloader)
-        if flush_time > train_dataloader_num:
-            train_flush_time = 2
-        else:
-            train_flush_time = train_dataloader_num // flush_time
         val_dataloader_num = len(eval_dataloader)
-        if flush_time > val_dataloader_num:
+        if flush_time > train_dataloader_num or flush_time > val_dataloader_num:
+            train_flush_time = 2
             val_flush_time = 2
         else:
+            train_flush_time = train_dataloader_num // flush_time
             val_flush_time = val_dataloader_num // flush_time
+
         if self.colab_mode is False:
             _, columns = os.popen('stty size', 'r').read().split()
             columns = int(columns)
@@ -200,9 +169,7 @@ class TPUTrainer(Trainer):
             self.model.train()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             para_dataloader = pl.ParallelLoader(train_dataloader, [self.device]).per_device_loader(self.device)
-            step_loss, step_mean = self._multi_all_step(para_dataloader, train_flush_time, mode=mode, desc_str=desc_str)
-            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
-            show_mean = np.insert(show_mean, 0, show_loss)
+            show_mean = self._multi_all_step(para_dataloader, train_flush_time, mode=mode, desc_str=desc_str)
             train_output.append(show_mean)
             xm.master_print('-' * int(columns))
             ####################################################################
@@ -211,9 +178,7 @@ class TPUTrainer(Trainer):
             self.model.eval()
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
             para_dataloader = pl.ParallelLoader(eval_dataloader, [self.device]).per_device_loader(self.device)
-            step_loss, step_mean = self._multi_all_step(para_dataloader, val_flush_time, mode=mode, desc_str=desc_str)
-            show_loss, show_mean = np.mean(step_loss), np.mean(step_mean, axis=0)
-            show_mean = np.insert(show_mean, 0, show_loss)
+            show_mean = self._multi_all_step(para_dataloader, val_flush_time, mode=mode, desc_str=desc_str)
             val_output.append(show_mean)
             ####################################################################
             xm.master_print('=' * int(columns))
@@ -238,36 +203,6 @@ class TPUTrainer(Trainer):
             xm.optimizer_step(self.optimizer, barrier=True)
             self.optimizer.zero_grad()
         return loss, output
-
-    def _single_all_step(self, dataloader, mode: str, desc_str: str) -> (list, list):
-        step_loss = []
-        step_eval = []
-        with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-            for i, (inputs, labels) in enumerate(pbar):
-=======
-    def _all_step(self, dataloader, mode: str, desc_str: str, columns: int) -> np.ndarray:
-        step_loss = []
-        step_eval = []
-        with tqdm(dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
-            for inputs, labels in pbar:
->>>>>>> devel
-                inputs = self._trans_data(inputs)
-                labels = self._trans_data(labels)
-                if mode.lower() == 'train':
-                    loss, output = self._step(inputs, labels)
-                elif mode.lower() == 'val':
-                    with torch.no_grad():
-                        loss, output = self._step(inputs, labels, train=False)
-                step_loss.append(loss.item())
-<<<<<<< HEAD
-                show_loss = np.mean(val_loss)
-                step_eval.append(self._evaluate(output, labels))
-                show_mean = np.mean(show_val_eval, axis=0)
-                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                torch.cuda.empty_cache()
-        return step_loss, step_eval
-
 
     def _multi_all_step(self, dataloader, flush_time: int, mode: str, desc_str: str) -> (list, list):
         dataloader_num = len(dataloader)
@@ -297,15 +232,6 @@ class TPUTrainer(Trainer):
                                         f'Loss: {show_loss:.7f}',
                                         f'Evaluate: {evaluate}'])
                 xm.master_print(progress)
-        return step_loss, step_eval
-=======
-                show_loss = np.mean(step_loss)
-                step_eval.append(self._evaluate(output, labels))
-                show_mean = np.mean(step_eval, axis=0)
-                evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
-                self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                torch.cuda.empty_cache()
         show_loss, show_mean = np.mean(step_loss), np.mean(step_eval, axis=0)
         show_mean = np.insert(show_mean, 0, show_loss)
         return show_mean
->>>>>>> devel
