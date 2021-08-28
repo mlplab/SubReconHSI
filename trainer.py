@@ -196,6 +196,7 @@ class TPUTrainer(Trainer):
 
     def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
+        xm.master_print('tpu_mode')
         output = self.model(inputs)
         loss = self.criterion(output, labels)
         if train is True:
@@ -204,7 +205,8 @@ class TPUTrainer(Trainer):
             self.optimizer.zero_grad()
         return loss, output
 
-    def _multi_all_step(self, dataloader, flush_time: int, mode: str, desc_str: str) -> (list, list):
+    def _multi_all_step(self, dataloader, flush_time: int, mode: str,
+                        desc_str: str) -> (list, list):
         dataloader_num = len(dataloader)
         step_loss = []
         step_eval = []
