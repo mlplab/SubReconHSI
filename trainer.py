@@ -94,9 +94,13 @@ class Trainer(object):
                 output = self.model(inputs)
             loss = self.criterion(output, labels)
         if train is True:
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            if self.device == 'cuda':
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                self.optimizer.step()
             self.optimizer.zero_grad()
         return loss, output
 
