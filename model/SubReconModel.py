@@ -2,7 +2,7 @@
 
 
 import torch
-from layers import Base_Module
+from .layers import Base_Module
 
 
 class RGBHSCNN(Base_Module):
