@@ -196,7 +196,6 @@ class TPUTrainer(Trainer):
 
     def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
-        xm.master_print('tpu_mode')
         output = self.model(inputs)
         loss = self.criterion(output, labels)
         if train is True:
