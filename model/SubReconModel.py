@@ -2,7 +2,7 @@
 
 
 import torch
-from .layers import Base_Module
+from layers import Base_Module
 
 
 class RGBHSCNN(Base_Module):
@@ -55,7 +55,7 @@ class SpectralFusion(Base_Module):
 
     def __init__(self, input_hsi_ch: int, input_rgb_ch: int, output_hsi_ch: int,
                  output_rgb_ch: int, *args, rgb_feature: int=64, hsi_feature: int=64,
-                 fusion_feature: int=64, layer_num: int=3) -> None:
+                 fusion_feature: int=64, layer_num: int=3, **kwargs) -> None:
         super().__init__()
         self.layer_num = layer_num
         self.rgb_layer = RGBHSCNN(input_rgb_ch, output_rgb_ch, feature_num=rgb_feature,
