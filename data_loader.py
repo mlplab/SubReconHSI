@@ -70,7 +70,7 @@ class PatchEvalDataset(PatchMaskDataset):
         return self.data[idx], input_data, label_data
 
 
-class SpectralFusionDatqaset(torch.utils.data.Dataset):
+class SpectralFusionDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, data_name='CAVE',
                  concat: bool=False, tanh: bool=False, data_key: str='data',
@@ -99,7 +99,7 @@ class SpectralFusionDatqaset(torch.utils.data.Dataset):
                 nd_data = transform(nd_data)
         else:
             nd_data = torchvision.transforms.ToTensor()(nd_data)
-        rgb_input = nd_data[self.rgb_ch[self.data_name]]
+        rgb_input = nd_data[self.rgb_ch[self.data_name], :, :]
         trans_data = nd_data
         label_data = trans_data
         mask = sio.loadmat(os.path.join(self.mask_path, f'mask_{patch_id}.mat'))[self.data_key]
