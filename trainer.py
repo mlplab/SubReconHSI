@@ -78,12 +78,20 @@ class Trainer(object):
         return train_output, val_output
 
     def _trans_data(self, data: torch.Tensor) -> torch.Tensor:
-        return data.to(self.device)
+        print(len(data), type(data))
+        if isinstance(data, (list, tuple)):
+            return [x.to(self.device) for x in data]
+        else:
+            return data.to(self.device)
 
     def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         with torch.cuda.amp.autocast(self.use_amp):
-            output = self.model(inputs)
+            if isinstance(inputs, (list, tuple)):
+                print(inputs[0].shape, inputs[1].shape)
+                output = self.model(*inputs)
+            else:
+                output = self.model(inputs)
             loss = self.criterion(output, labels)
         if train is True:
             self.scaler.scale(loss).backward()
