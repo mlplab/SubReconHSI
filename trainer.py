@@ -88,13 +88,9 @@ class Trainer(object):
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         with torch.cuda.amp.autocast(self.use_amp):
             if isinstance(inputs, (list, tuple)):
-                rgb, hsi = self.model(*inputs)
+                output = self.model(*inputs)
             else:
-                hsi = self.model(inputs)
-            if isinstance(labels, (list, tuple)):
-                output = [rgb, hsi]
-            else:
-                output = hsi
+                output = self.model(inputs)
             loss = self.criterion(output, labels)
         if train is True:
             if self.device == 'cuda':
@@ -105,6 +101,10 @@ class Trainer(object):
                 loss.backward()
                 self.optimizer.step()
             self.optimizer.zero_grad()
+        if isinstance(output, (list, tuple)):
+            hsi = output[-1]
+        else:
+            hsi = output
         return loss, hsi
 
     def _step_show(self, pbar, *args, **kwargs) -> None:
