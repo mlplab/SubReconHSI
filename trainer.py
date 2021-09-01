@@ -92,7 +92,6 @@ class Trainer(object):
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         with torch.cuda.amp.autocast(self.use_amp):
             if isinstance(inputs, (list, tuple)):
-                print(inputs[0].shape, inputs[1].shape)
                 output = self.model(*inputs)
             else:
                 output = self.model(inputs)
