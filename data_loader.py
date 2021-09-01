@@ -11,13 +11,12 @@ import torchvision
 class PatchMaskDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, concat: bool=False,
-                 tanh: bool=False, data_key: str='data', transform=None, **kwargs) -> None:
+                 data_key: str='data', transform=None, **kwargs) -> None:
 
         self.img_path = img_path
         self.data = os.listdir(img_path)
         self.mask_path = mask_path
         self.data_len = len(self.data)
-        self.tanh = tanh
         self.concat = concat
         self.data_key = data_key
         self.transforms = transform
@@ -73,15 +72,13 @@ class PatchEvalDataset(PatchMaskDataset):
 class SpectralFusionDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, data_name='CAVE',
-                 concat: bool=False, tanh: bool=False, data_key: str='data',
-                 transform=None, rgb_input: bool=True, rgb_label: bool=True,
-                 **kwargs) -> None:
+                 concat: bool=False, data_key: str='data', transform=None,
+                 rgb_input: bool=True, rgb_label: bool=True, **kwargs) -> None:
 
         self.img_path = img_path
         self.data = os.listdir(img_path)
         self.mask_path = mask_path
         self.data_len = len(self.data)
-        self.tanh = tanh
         self.concat = concat
         self.data_key = data_key
         self.transforms = transform
