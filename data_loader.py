@@ -74,7 +74,8 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, data_name='CAVE',
                  concat: bool=False, tanh: bool=False, data_key: str='data',
-                 transform=None, **kwargs) -> None:
+                 transform=None, rgb_input: bool=True, rgb_label: bool=True,
+                 **kwargs) -> None:
 
         self.img_path = img_path
         self.data = os.listdir(img_path)
@@ -86,6 +87,8 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
         self.transforms = transform
         self.mask_transforms = torchvision.transforms.ToTensor()
         self.data_name = data_name
+        self.rgb_input = rgb_input
+        self.rgb_label = rgb_label
         self.rgb_ch = {'CAVE': (26, 16, 9),
                        'Harvard': (26, 16, 9),
                        'ICVL': (26, 16, 9)}
@@ -99,17 +102,26 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
                 nd_data = transform(nd_data)
         else:
             nd_data = torchvision.transforms.ToTensor()(nd_data)
-        rgb_input = nd_data[self.rgb_ch[self.data_name], :, :]
         trans_data = nd_data
         label_data = trans_data
         mask = sio.loadmat(os.path.join(self.mask_path, f'mask_{patch_id}.mat'))[self.data_key]
         mask = self.mask_transforms(mask)
         measurement_data = (trans_data * mask).sum(dim=0, keepdim=True)
+
         if self.concat is True:
             input_data = torch.cat([measurement_data, mask], dim=0)
         else:
             input_data = measurement_data
-        return (rgb_input, input_data), (rgb_input, label_data)
+
+        if self.rgb_input:
+            rgb_input = nd_data[self.rgb_ch[self.data_name], :, :]
+            input_data = (rgb_input, input_data)
+
+        if self.rgb_label:
+            rgb_label = nd_data[self.rgb_ch[self.data_name], :, :]
+            label_data = (rgb_label, label_data)
+
+        return input_data, label_data
 
     def __len__(self):
         return self.data_len
