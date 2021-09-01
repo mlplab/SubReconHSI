@@ -118,7 +118,7 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
             input_data = (rgb_input, input_data)
 
         if self.rgb_label:
-            rgb_label = nd_data[self.rgb_ch[self.data_name], :, :]
+            rgb_label = label_data[self.rgb_ch[self.data_name], :, :]
             label_data = (rgb_label, label_data)
 
         return input_data, label_data
