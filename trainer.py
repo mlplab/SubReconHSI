@@ -22,7 +22,7 @@ class Trainer(object):
 
     def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module,
                  optimizer: torch.optim.Optimizer, *args, scheduler=None,
-                 callbacks=None, device: str='cpu', **kwargs):
+                 callbacks=None, device: str='cpu', evaluate_flg: bool=False, **kwargs):
 
         self.model = model
         self.criterion = criterion
@@ -35,6 +35,7 @@ class Trainer(object):
         self.sam = kwargs.get('sam', None_Evaluate())  # SAMMetrics().eval())
         self.ssim = kwargs.get('ssim', None_Evaluate())  # SSIM().eval()
         self.colab_mode = kwargs.get('colab_mode', False)
+        self.evaluate_flg = evaluate_flg
         self.scaler = torch.cuda.amp.GradScaler()
 
     def train(self, epochs: int, train_dataloader: torch.utils.data.DataLoader,
@@ -78,7 +79,6 @@ class Trainer(object):
         return train_output, val_output
 
     def _trans_data(self, data: torch.Tensor) -> torch.Tensor:
-        print(len(data), type(data))
         if isinstance(data, (list, tuple)):
             return [x.to(self.device) for x in data]
         else:
@@ -88,9 +88,13 @@ class Trainer(object):
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         with torch.cuda.amp.autocast(self.use_amp):
             if isinstance(inputs, (list, tuple)):
-                output = self.model(*inputs)
+                rgb, hsi = self.model(*inputs)
             else:
-                output = self.model(inputs)
+                hsi = self.model(inputs)
+            if isinstance(labels, (list, tuple)):
+                output = [rgb, hsi]
+            else:
+                output = hsi
             loss = self.criterion(output, labels)
         if train is True:
             if self.device == 'cuda':
@@ -101,7 +105,7 @@ class Trainer(object):
                 loss.backward()
                 self.optimizer.step()
             self.optimizer.zero_grad()
-        return loss, output
+        return loss, hsi
 
     def _step_show(self, pbar, *args, **kwargs) -> None:
         if self.device == 'cuda':
@@ -113,10 +117,10 @@ class Trainer(object):
     def _evaluate(self, output: torch.Tensor, label: torch.Tensor) -> (float, float, float):
         output = output.float().to(self.device)
         output = torch.clamp(output, 0., 1.)
-        labels = torch.clamp(label, 0., 1.)
-        return [self.psnr(labels, output).item(),
-                self.ssim(labels, output).item(),
-                self.sam(labels, output).item()]
+        label = torch.clamp(label, 0., 1.)
+        return [self.psnr(labe, output).item(),
+                self.ssim(label, output).item(),
+                self.sam(label, output).item()]
 
     def _all_step(self, dataloader, mode: str, desc_str: str, columns: int) -> np.ndarray:
         step_loss = []
@@ -131,9 +135,10 @@ class Trainer(object):
                     with torch.no_grad():
                         loss, output = self._step(inputs, labels, train=False)
                 step_loss.append(loss.item())
-                show_loss = np.mean(val_loss)
+                show_loss = np.mean(step_loss)
                 step_eval.append(self._evaluate(output, labels))
-                show_mean = np.mean(show_val_eval, axis=0)
+                show_mean = np.mean(step_eval, axis=0)
+                # if self.evaluate_flg:
                 evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                 self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
                 torch.cuda.empty_cache()
