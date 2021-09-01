@@ -60,7 +60,7 @@ class Trainer(object):
             train_loss = []
             val_loss = []
             desc_str = f'{mode:>5} Epoch: {epoch + 1:05d} / {epochs:05d}'
-            show_mean = self._all_step(val_dataloader, mode=mode, desc_str=desc_str, columns=columns)
+            show_mean = self._all_step(train_dataloader, mode=mode, desc_str=desc_str, columns=columns)
             train_output.append(show_mean)
 
             self.model.eval()
