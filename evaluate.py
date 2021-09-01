@@ -170,11 +170,16 @@ class ReconstEvaluater(Evaluater):
             with tqdm(dataset, ncols=columns, ascii=True) as pbar:
                 for i, (idx, inputs, labels) in enumerate(pbar):
                     evaluate_list = []
-                    inputs = inputs.unsqueeze(0).to(device)
-                    labels = labels.unsqueeze(0).to(device)
+                    inputs = self._trans_data(inputs)
+                    labels = self._trans_data(labels)
                     output = model(inputs)
+                    if isinstance(output, (list, tuple)):
+                        output = output[-1]
                     metrics_output = torch.clamp(output, min=0., max=1.)
-                    metrics_labels = torch.clamp(labels, min=0., max=1.)
+                    if isinstance(labels, (list, tuple)):
+                        metrics_labels = torch.clamp(labels[-1], min=0., max=1.)
+                    else:
+                        metrics_labels = torch.clamp(labels, min=0., max=1.)
                     for metrics_func in evaluate_fn:
                         metrics = metrics_func(metrics_output, metrics_labels)
                         evaluate_list.append(f'{metrics.item():.7f}')
@@ -187,3 +192,10 @@ class ReconstEvaluater(Evaluater):
                     self._save_mat(i, idx, output)
         self._save_csv(output_evaluate, header)
         return self
+
+    def _trans_data(self, data: torch.Tensor) -> torch.Tensor:
+        if isinstance(data, (list, tuple)):
+            data = [x.unsqueeze(0).to(device) for x in data]
+        else:
+            data = data.unsqueeze(0).to(device)
+        return data
