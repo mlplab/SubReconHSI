@@ -155,7 +155,7 @@ class SpectralFusionEvalDataset(SpectralFusionDataset):
             rgb_label = label_data[self.rgb_ch[self.data_name], :, :]
             label_data = (rgb_label, label_data)
 
-        return idx, input_data, label_data
+        return self.data[idx], input_data, label_data
 
     def __len__(self):
         return self.data_len
