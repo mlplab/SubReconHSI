@@ -96,6 +96,20 @@ class MSE_SAMLoss(torch.nn.Module):
         return self.alpha * self.mse_ratio * self.mse_loss(x, y) + self.beta * self.sam_ratio * self.sam_loss(x, y)
 
 
+class FusionLoss(torch.nn.Module):
+
+    def __init__(self, rgb_base_fn: torch.nn.Module=torch.nn.MSELoss,
+                 hsi_base_fn: torch.nn.Module=torch.nn.MSELoss, **kwargs) -> None:
+        super().__init__()
+        self.rgb_fn = rgb_base_fn()
+        self.hsi_fn = hsi_base_fn()
+
+    def forward(self, output: tuple, label: tuple) -> torch.Tensor:
+        rgb_x, hsi_x = output
+        rgb_y, hsi_y = label
+        return .5 * self.rgb_fn(rgb_x, rgb_y) + .5 * self.hsi_fn(hsi_x, hsi_y)
+
+
 # ########################## Loss Function ##########################
 
 
