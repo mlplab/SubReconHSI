@@ -117,8 +117,10 @@ class Trainer(object):
     def _evaluate(self, output: torch.Tensor, label: torch.Tensor) -> (float, float, float):
         output = output.float().to(self.device)
         output = torch.clamp(output, 0., 1.)
-        label = torch.clamp(label, 0., 1.)
-        return [self.psnr(labe, output).item(),
+        if isinstance(label, (list, tuple)):
+            hsi_label = label[-1]
+        label = torch.clamp(hsi_label, 0., 1.)
+        return [self.psnr(label, output).item(),
                 self.ssim(label, output).item(),
                 self.sam(label, output).item()]
 
