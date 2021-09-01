@@ -85,7 +85,14 @@ class TPUTrainer(Trainer):
 
     def _step(self, inputs: torch.Tensor, labels: torch.Tensor,
               train: bool=True) -> (torch.Tensor, torch.Tensor):
-        output = self.model(inputs)
+        if isinstance(inputs, (list, tuple)):
+            rgb, hsi = self.model(*inputs)
+        else:
+            hsi = self.model(inputs)
+        if isinstance(labels, (list, tuple)):
+            output = [rgb, hsi]
+        else:
+            output = hsi
         loss = self.criterion(output, labels)
         if train is True:
             loss.backward()
