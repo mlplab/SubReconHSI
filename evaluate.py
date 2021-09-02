@@ -172,11 +172,11 @@ class ReconstEvaluater(Evaluater):
                     inputs = self._trans_data(inputs)
                     labels = self._trans_data(labels)
                     if isinstance(inputs, (list, tuple)):
-                        output = self.model(*inputs)
+                        output = model(*inputs)
                     elif isinstance(inputs, (dict)):
-                        output = self.model(**inputs)
+                        output = model(**inputs)
                     else:
-                        output = self.model(inputs)
+                        output = model(inputs)
                     if isinstance(output, (list, tuple)):
                         output = output[-1]
                     if isinstance(inputs, (list, tuple)):
