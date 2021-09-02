@@ -123,6 +123,8 @@ class Trainer(object):
         output = torch.clamp(output, 0., 1.)
         if isinstance(label, (list, tuple)):
             hsi_label = label[-1]
+        elif isinstance(label, (dict)):
+            hsi_label = label['hsi']
         label = torch.clamp(hsi_label, 0., 1.)
         return [self.psnr(label, output).item(),
                 self.ssim(label, output).item(),
