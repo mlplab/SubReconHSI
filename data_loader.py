@@ -150,7 +150,7 @@ class SpectralFusionEvalDataset(SpectralFusionDataset):
         mask = self.mask_transforms(mask)
         measurement_data = (trans_data * mask).sum(dim=0, keepdim=True)
 
-                if self.concat is True:
+        if self.concat is True:
             hsi_data = torch.cat([measurement_data, mask], dim=0)
         else:
             hsi_data = measurement_data
