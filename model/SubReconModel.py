@@ -57,6 +57,8 @@ class SpectralFusion(Base_Module):
                  output_rgb_ch: int, *args, rgb_feature: int=64, hsi_feature: int=64,
                  fusion_feature: int=64, layer_num: int=3, **kwargs) -> None:
         super().__init__()
+        self.input_rgb_ch = input_rgb_ch
+        self.output_rgb_ch = output_rgb_ch
         self.layer_num = layer_num
         self.rgb_layer = RGBHSCNN(input_rgb_ch, output_rgb_ch, feature_num=rgb_feature,
                                   layer_num=layer_num)
@@ -67,13 +69,19 @@ class SpectralFusion(Base_Module):
 
     def forward(self, rgb: torch.Tensor, hsi: torch.Tensor) -> (torch.Tensor, torch.Tensor):
 
-        rgb_x = self.rgb_layer.input_activation(self.rgb_layer.input_conv(rgb))
         hsi_x = self.hsi_layer.input_activation(self.hsi_layer.input_conv(hsi))
+        if self.input_rgb_ch >= 1:
+            rgb_x = self.rgb_layer.input_activation(self.rgb_layer.input_conv(rgb))
+        else:
+            rgb_x = hsi_x
         for i in range(self.layer_num):
             rgb_x = self.rgb_layer.activation_layer[f'RGB_act_{i}'](self.rgb_layer.feature_layers[f'RGB_{i}'](rgb_x))
             fusion_feature = torch.cat((rgb_x, hsi_x), dim=1)
             hsi_x = self.fusion_conv[f'Fusion_{i}'](fusion_feature)
             hsi_x = self.hsi_layer.activation_layer[f'HSI_act_{i}'](self.hsi_layer.feature_layers[f'HSI_{i}'](hsi_x))
-        output_rgb = self.rgb_layer.output_conv(rgb_x)
         output_hsi = self.hsi_layer.output_conv(hsi_x)
-        return output_rgb, output_hsi
+        if self.output_rgb_ch >= 1:
+            output_rgb = self.rgb_layer.output_conv(rgb_x)
+            return output_rgb, output_hsi
+        else:
+            return output_hsi
