@@ -73,7 +73,8 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, data_name='CAVE',
                  concat: bool=False, data_key: str='data', transform=None,
-                 rgb_input: bool=True, rgb_label: bool=True, **kwargs) -> None:
+                 return_mode: str='dict', rgb_input: bool=True,
+                 rgb_label: bool=True, **kwargs) -> None:
 
         self.img_path = img_path
         self.data = os.listdir(img_path)
@@ -84,6 +85,7 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
         self.transforms = transform
         self.mask_transforms = torchvision.transforms.ToTensor()
         self.data_name = data_name
+        self.return_mode = return_mode
         self.rgb_input = rgb_input
         self.rgb_label = rgb_label
         self.rgb_ch = {'CAVE': (26, 16, 9),
@@ -100,23 +102,24 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
         else:
             nd_data = torchvision.transforms.ToTensor()(nd_data)
         trans_data = nd_data
-        label_data = trans_data
         mask = sio.loadmat(os.path.join(self.mask_path, f'mask_{patch_id}.mat'))[self.data_key]
         mask = self.mask_transforms(mask)
         measurement_data = (trans_data * mask).sum(dim=0, keepdim=True)
 
         if self.concat is True:
-            input_data = torch.cat([measurement_data, mask], dim=0)
+            hsi_data = torch.cat([measurement_data, mask], dim=0)
         else:
-            input_data = measurement_data
+            hsi_data = measurement_data
+        hsi_label = trans_data
+        input_data = {'hsi': hsi_data}
+        label_data = {'hsi': hsi_label}
 
         if self.rgb_input:
-            rgb_input = nd_data[self.rgb_ch[self.data_name], :, :]
-            input_data = (rgb_input, input_data)
-
+            rgb_input = trans_data[self.rgb_ch[self.data_name], :, :]
+            input_data['rgb'] = rgb_input
         if self.rgb_label:
-            rgb_label = label_data[self.rgb_ch[self.data_name], :, :]
-            label_data = (rgb_label, label_data)
+            rgb_label = trans_data[self.rgb_ch[self.data_name], :, :]
+            label_data['rgb'] = rgb_label
 
         return input_data, label_data
 
@@ -143,17 +146,19 @@ class SpectralFusionEvalDataset(SpectralFusionDataset):
         measurement_data = (trans_data * mask).sum(dim=0, keepdim=True)
 
         if self.concat is True:
-            input_data = torch.cat([measurement_data, mask], dim=0)
+            hsi_data = torch.cat([measurement_data, mask], dim=0)
         else:
-            input_data = measurement_data
+            hsi_data = measurement_data
+        hsi_label = trans_data
+        input_data = {'hsi': hsi_data}
+        label_data = {'hsi': hsi_label}
 
         if self.rgb_input:
-            rgb_input = nd_data[self.rgb_ch[self.data_name], :, :]
-            input_data = (rgb_input, input_data)
-
+            rgb_input = trans_data[self.rgb_ch[self.data_name], :, :]
+            input_data['rgb'] = rgb_input
         if self.rgb_label:
-            rgb_label = label_data[self.rgb_ch[self.data_name], :, :]
-            label_data = (rgb_label, label_data)
+            rgb_label = trans_data[self.rgb_ch[self.data_name], :, :]
+            label_data['rgb'] = rgb_label
 
         return self.data[idx], input_data, label_data
 
