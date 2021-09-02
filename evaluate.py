@@ -182,7 +182,7 @@ class ReconstEvaluater(Evaluater):
                     if isinstance(inputs, (list, tuple)):
                         inputs = inputs[0]
                     elif isinstance(inputs, (dict)):
-                        inputs = inputs['rgb']
+                        inputs = inputs['hsi']
                     if isinstance(labels, (list, tuple)):
                         labels = labels[-1]
                     elif isinstance(labels, (dict)):
