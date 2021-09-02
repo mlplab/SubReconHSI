@@ -11,7 +11,10 @@ class RGBHSCNN(Base_Module):
                  layer_num: int=3, **kwargs) -> None:
         super().__init__()
         activation = kwargs.get('activation', 'relu').lower()
-        self.input_conv = torch.nn.Conv2d(input_ch, feature_num, 3, 1, 1)
+        if input_ch == 0:
+            self.input_conv = torch.nn.Identity()
+        else:
+            self.input_conv = torch.nn.Conv2d(input_ch, feature_num, 3, 1, 1)
         self.input_activation = self.activations[activation]()
         self.feature_layers = torch.nn.ModuleDict({f'RGB_{i}': torch.nn.Conv2d(feature_num, feature_num, 3, 1, 1)
                                                    for i in range(layer_num)})
