@@ -84,8 +84,8 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
         self.data_key = data_key
         self.transforms = transform
         self.mask_transforms = torchvision.transforms.ToTensor()
-    #     self.data_name = data_name
-        self.return_mode = return_mode
+        self.data_name = data_name
+        # self.return_mode = return_mode
         self.rgb_input = rgb_input
         self.rgb_label = rgb_label
         self.rgb_ch = {'CAVE': (26, 16, 9),
