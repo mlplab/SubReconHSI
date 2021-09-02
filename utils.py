@@ -233,14 +233,14 @@ class ModelCheckPoint(object):
         epoch += 1
         if epoch % self.partience == 0:
             torch.save({'model_state_dict': model.state_dict(), 'epoch': epoch,
-                        'loss': self.all_loss 'val_loss': self.all_val_loss,
+                        'loss': self.all_loss, 'val_loss': self.all_val_loss,
                         'optim': kwargs['optim'].state_dict()}, checkpoint_name)
             if self.verbose is True:
                 print(f'CheckPoint Saved by {checkpoint_name}')
         if self.colab2drive_flag is True and epoch == self.colab2drive[self.colab2drive_idx]:
             colab2drive_path = os.path.join(self.colab2drive_path, save_file)
             torch.save({'model_state_dict': model.state_dict(), 'epoch': epoch,
-                        'loss': self.all_loss 'val_loss': self.all_val_loss,
+                        'loss': self.all_loss, 'val_loss': self.all_val_loss,
                         'optim': kwargs['optim'].state_dict()}, colab2drive_path)
             self.colab2drive_idx += 1
         return self
