@@ -81,6 +81,8 @@ class Trainer(object):
     def _trans_data(self, data: torch.Tensor) -> torch.Tensor:
         if isinstance(data, (list, tuple)):
             return [x.to(self.device) for x in data]
+        elif isinstance(data, (dict)):
+            return {key: value.to(self.device) for key, value in data.items()}
         else:
             return data.to(self.device)
 
@@ -89,6 +91,8 @@ class Trainer(object):
         with torch.cuda.amp.autocast(self.use_amp):
             if isinstance(inputs, (list, tuple)):
                 output = self.model(*inputs)
+            elif isinstance(inputs, (dict)):
+                output = self.model(**inputs)
             else:
                 output = self.model(inputs)
             loss = self.criterion(output, labels)
