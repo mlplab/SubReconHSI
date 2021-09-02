@@ -87,8 +87,12 @@ class TPUTrainer(Trainer):
               train: bool=True) -> (torch.Tensor, torch.Tensor):
         if isinstance(inputs, (list, tuple)):
             output = self.model(*inputs)
+        elif isinstance(inputs, (dict)):
+            output = self.model(**inputs)
         else:
             output = self.model(inputs)
+        if isinstance(labels, dict) and isinstance(output, torch.Tensor):
+            labels = labels['hsi']
         loss = self.criterion(output, labels)
         if train is True:
             loss.backward()
