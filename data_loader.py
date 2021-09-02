@@ -73,8 +73,8 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
 
     def __init__(self, img_path: str, mask_path: str, *args, data_name='CAVE',
                  concat: bool=False, data_key: str='data', transform=None,
-                 return_mode: str='dict', rgb_input: bool=True,
-                 rgb_label: bool=True, **kwargs) -> None:
+                 # return_mode: str='dict',
+                 rgb_input: bool=True, rgb_label: bool=True, **kwargs) -> None:
 
         self.img_path = img_path
         self.data = os.listdir(img_path)
@@ -84,7 +84,7 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
         self.data_key = data_key
         self.transforms = transform
         self.mask_transforms = torchvision.transforms.ToTensor()
-        self.data_name = data_name
+    #     self.data_name = data_name
         self.return_mode = return_mode
         self.rgb_input = rgb_input
         self.rgb_label = rgb_label
@@ -92,7 +92,7 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
                        'Harvard': (26, 16, 9),
                        'ICVL': (26, 16, 9)}
 
-    def __getitem__(self, idx: int) -> (torch.Tensor, torch.Tensor):
+    def __getitem__(self, idx: int) -> (dict, dict):
         patch_id = self.data[idx].split('.')[0].split('_')[-1]
         mat_data = sio.loadmat(os.path.join(self.img_path, self.data[idx]))[self.data_key]
         nd_data = np.array(mat_data, dtype=np.float32).copy()
@@ -130,7 +130,7 @@ class SpectralFusionDataset(torch.utils.data.Dataset):
 class SpectralFusionEvalDataset(SpectralFusionDataset):
 
 
-    def __getitem__(self, idx: int) -> (torch.Tensor, torch.Tensor):
+    def __getitem__(self, idx: int) -> (dict, dict):
         patch_id = self.data[idx].split('.')[0].split('_')[-1]
         mat_data = sio.loadmat(os.path.join(self.img_path, self.data[idx]))[self.data_key]
         nd_data = np.array(mat_data, dtype=np.float32).copy()
