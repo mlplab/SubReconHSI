@@ -106,7 +106,10 @@ class FusionLoss(torch.nn.Module):
 
     def forward(self, output: tuple, label: tuple) -> torch.Tensor:
         rgb_x, hsi_x = output
-        rgb_y, hsi_y = label
+        if isinstance(label, (dict)):
+            rgb_y, hsi_y = label['rgb'], label['hsi']
+        else:
+            rgb_y, hsi_y = label
         return .5 * self.rgb_fn(rgb_x, rgb_y) + .5 * self.hsi_fn(hsi_x, hsi_y)
 
 
