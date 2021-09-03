@@ -68,7 +68,7 @@ callback_result_path = os.path.join('../SCI_result', f'{data_name}_{dt_now}', f'
 os.makedirs(callback_result_path, exist_ok=True)
 filter_path = os.path.join('../SCI_dataset', 'D700_CSF.mat')
 ckpt_path = os.path.join('../SCI_ckpt', f'{data_name}_{dt_now}')
-all_trained_ckpt_path = os.path.join(ckpt_path, 'all_trained_sota')
+all_trained_ckpt_path = os.path.join(ckpt_path, 'all_trained')
 os.makedirs(all_trained_ckpt_path, exist_ok=True)
 
 
