@@ -10,12 +10,10 @@ import matplotlib.pyplot as plt
 import torch
 import torchvision
 from torchinfo import summary
-from trainer import HiNASTrainer, Trainer
+from trainer import Trainer
 from model.HSCNN import HSCNN
 from model.DeepSSPrior import DeepSSPrior
 from model.HyperReconNet import HyperReconNet
-from model.HiNAS import TrainHiNAS
-from model.HiNAS import SearchHiNAS as PreHiNAS
 from model.layers import MSE_SAMLoss
 from data_loader import PatchMaskDataset, PatchEvalDataset
 from evaluate import PSNRMetrics, SAMMetrics, RMSEMetrics
@@ -30,12 +28,11 @@ parser.add_argument('--batch_size', '-b', default=64, type=int, help='Training a
 parser.add_argument('--epochs', '-e', default=100, type=int, help='Train eopch size')
 parser.add_argument('--dataset', '-d', default='Harvard', type=str, help='Select dataset')
 parser.add_argument('--concat', '-c', default='False', type=str, help='Concat mask by input')
-parser.add_argument('--model_name', '-m', default='HiNAS', type=str, help='Model Name')
-parser.add_argument('--block_num', '-bn', default=5, type=int, help='Model Block Number')
-parser.add_argument('--node_num', '-nn', default=3, type=int, help='Model Node Number')
-parser.add_argument('--cell_num', '-cn', default=4, type=int, help='Model Cell Number')
+parser.add_argument('--model_name', '-m', default='SpectralFusion', type=str, help='Model Name')
+parser.add_argument('--block_num', '-bn', default=3, type=int, help='Model Block Number')
 parser.add_argument('--start_time', '-st', default='0000', type=str, help='start training time')
-parser.add_argument('--loss', '-l', default='mse', type=str, help='Loss Mode')
+parser.add_argument('--mode', '-md', default='both', type=str, help='Model Mode')
+parser.add_argument('--loss', '-l', default='fusion', type=str, help='Loss Mode')
 args = parser.parse_args()
 
 
@@ -51,9 +48,7 @@ else:
 data_name = args.dataset
 model_name = args.model_name
 block_num = args.block_num
-node_num = args.node_num
-ratio = 1
-mode = 'normal'
+output_mode = args.mode
 loss_mode = args.loss
 
 
