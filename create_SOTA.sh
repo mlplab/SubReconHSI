@@ -6,7 +6,7 @@ CMDNAME=`basename $0`
 
 batch_size=64
 # search_epoch=100
-train_epoch=1
+train_epoch=150
 datasets=("CAVE" "Harvard")
 model_names=("HSCNN" "HyperReconNet" "DeepSSPrior")
 block_num=9
