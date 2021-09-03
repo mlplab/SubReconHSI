@@ -16,12 +16,12 @@ start_time=$(date "+%m%d")
 # start_time='0702'
 
 
-while getopts b:d:c:m:bn: OPT
+while getopts b:e:d:c:m:bn: OPT
 do
     echo "$OPTARG"
     case $OPT in
         b) batch_size=$OPTARG ;;
-        # e) epoch=$OPTARG ;;
+        e) train_epoch=$OPTARG ;;
         d) datasets=$OPTARG ;;
         c) concat=$OPTARG ;;
         m) model_name=$OPTARG ;;
