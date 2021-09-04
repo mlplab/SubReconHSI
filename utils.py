@@ -57,6 +57,37 @@ def make_patch(data_path: str, save_path: str, size: int=256, step: int=256,
     return None
 
 
+def make_patch_list(data_path: str, data_list: list, save_path: str, size: int=256, 
+                    step: int=256, ch: int=31, data_key: str='data') -> None:
+
+    if os.path.exists(save_path):
+        shutil.rmtree(save_path)
+    os.mkdir(save_path)
+
+    show_kwargs = {}
+    data_list.sort()
+    with tqdm(data_list, ascii=True) as pbar:
+        for i, name in enumerate(tqdm(data_list, ascii=True)):
+            idx = name.split('.')[0]
+            f = scipy.io.loadmat(os.path.join(data_path, name))
+            data = f[data_key]
+            data = normalize(data)
+            data = np.expand_dims(np.array(data, np.float32).transpose([2, 0, 1]), axis=0)
+            print(data.shape)
+            tensor_data = torch.as_tensor(data)
+            patch_data = tensor_data.unfold(2, size, step).unfold(3, size, step)
+            patch_data = patch_data.permute((0, 2, 3, 1, 4, 5)).reshape(-1, ch, size, size)
+            for i in range(patch_data.size()[0]):
+                save_data = patch_data[i].to('cpu').detach().numpy().copy().transpose(1, 2, 0)
+                save_name = os.path.join(save_path, f'{idx}_{i:05d}.mat')
+                scipy.io.savemat(save_name, {'data': save_data})
+            show_kwargs['data_path'] = name
+            show_kwargs['save_path_path'] = save_name
+            pbar.set_postfix(show_kwargs)
+
+    return None
+
+
 def make_patch_h5py(data_path: str, save_path: str, size: int=256, step: int=256,
                     ch: int=24, data_key: str='data') -> None:
 
@@ -65,7 +96,7 @@ def make_patch_h5py(data_path: str, save_path: str, size: int=256, step: int=256
     os.mkdir(save_path)
 
     data_list = os.listdir(data_path)
-    # data_list.sort()
+    data_list.sort()
     for i, name in enumerate(tqdm(data_list, ascii=True)):
         idx = name.split('.')[0]
         # f = scipy.io.loadmat(os.path.join(data_path, name))
@@ -87,8 +118,42 @@ def make_patch_h5py(data_path: str, save_path: str, size: int=256, step: int=256
     return None
 
 
-def patch_mask(mask_path: str, save_path: str, size: int=256, step:
-               int=256, ch: int=24, data_key: str='data') -> None:
+def make_patch_h5py_list(data_path: str, data_list: list, save_path: str, 
+                         size: int=256, step: int=256, ch: int=24, 
+                         data_key: str='data') -> None:
+
+    if os.path.exists(save_path):
+        shutil.rmtree(save_path)
+    os.mkdir(save_path)
+
+    data_list.sort()
+    show_kwargs = {}
+    with tqdm(data_list, ascii=True) as pbar:
+        for i, name in enumerate(pbar):
+            idx = name.split('.')[0]
+            # f = scipy.io.loadmat(os.path.join(data_path, name))
+            data = h5py.File(os.path.join(data_path, name), 'r')
+            data = np.array(data[data_key]).transpose((1, 2, 0))
+            data = normalize(data)
+            data = np.expand_dims(np.array(data[::-1, :, :], np.float32).transpose([2, 0, 1]), axis=0)            
+            tensor_data = torch.as_tensor(data)
+            patch_data = tensor_data.unfold(2, size, step).unfold(3, size, step)
+            patch_data = patch_data.permute((0, 2, 3, 1, 4, 5)).reshape(-1, ch, size, size)
+            for i in range(patch_data.size()[0]):
+                save_data = patch_data[i].to('cpu').detach().numpy().copy().transpose(1, 2, 0)
+                save_name = os.path.join(save_path, f'{idx}_{i:05d}.h5')
+                # scipy.io.savemat(save_name, {'data': save_data})
+                with h5py.File(save_name, 'w') as f:
+                    f.create_dataset('data', data=save_data)
+            show_kwargs['data_path'] = name
+            show_kwargs['save_path_path'] = save_name
+            pbar.set_postfix(show_kwargs)
+
+    return None
+
+
+def patch_mask(mask_path: str, save_path: str, size: int=256, step: int=256, 
+               ch: int=24, data_key: str='data') -> None:
 
     if os.path.exists(save_path) is True:
         shutil.rmtree(save_path)
@@ -107,8 +172,8 @@ def patch_mask(mask_path: str, save_path: str, size: int=256, step:
     return None
 
 
-def patch_mask_h5(mask_path: str, save_path: str, size: int=256, step:
-                  int=256, ch: int=24, data_key: str='data') -> None:
+def patch_mask_h5(mask_path: str, save_path: str, size: int=256, step: int=256, 
+                  ch: int=24, data_key: str='data') -> None:
 
     if os.path.exists(save_path) is True:
         shutil.rmtree(save_path)
