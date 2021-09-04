@@ -60,6 +60,16 @@ class Mish(torch.nn.Module):
 # ########################## Loss Function ##########################
 
 
+class RMSELoss(torch.nn.Module):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.mse = torch.nn.MSELoss()
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return torch.sqrt(self.mse(x, y))
+
+
 class SAMLoss(torch.nn.Module):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
