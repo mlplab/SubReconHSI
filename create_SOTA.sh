@@ -33,20 +33,19 @@ done
 
 
 for dataset in $datasets; do
+    skicka mkdir 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA
     for concat in $concats; do
         for loss_mode in $loss_modes; do
-            skicka mkdir 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA
             for model_name in $model_names; do
                 echo $dataset $concat $loss_mode $model_name
                 python train_SOTA.py -e $train_epoch -d $dataset -l $loss_mode -st $start_time -bn $block_num -c $concat -b $batch_size -m $model_name
                 python evaluate_SOTA.py -e $train_epoch -d $dataset -l $loss_mode -st $start_time -bn $block_num -c $concat -b $batch_size -m $model_name
 
-            # skicka mkdir 2021/SpectralFusion/$dataset/ckpt_$start_time/sota/$model_name
-            model_name=$model_name\_0$block_num\_$loss_mode\_$start_time\_$concat
-            mkdir ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload
-            cp ../SCI_result/$dataset\_sota_$start_time/$model_name/output.csv ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload
-            skicka upload ../SCI_ckpt/$dataset\_$start_time/all_trained_sota/$model_name.tar 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA
-            skicka upload ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload/ 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA/$model_name
+                model_name=$model_name\_0$block_num\_$loss_mode\_$start_time\_$concat
+                mkdir ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload
+                cp ../SCI_result/$dataset\_sota_$start_time/$model_name/output.csv ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload
+                skicka upload ../SCI_ckpt/$dataset\_$start_time/all_trained_sota/$model_name.tar 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA
+                skicka upload ../SCI_result/$dataset\_sota_$start_time/$model_name/$model_name\_upload/ 2021/SpectralFusion/$dataset/ckpt_$start_time/SOTA/$model_name
             done
         done
     done
